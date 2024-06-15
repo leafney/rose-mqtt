@@ -57,6 +57,7 @@ func NewConfig(options ...Option) *Config {
 	cfg := &Config{
 		cleanSession:  true,
 		autoReconnect: true,
+		clientId:      generateRandomClientID(),
 	}
 	// 初始配置
 	for _, opt := range options {

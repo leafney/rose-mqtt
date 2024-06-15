@@ -10,9 +10,23 @@ package rmqtt
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 )
+
+// generateRandomClientID 生成随机 ClientID
+func generateRandomClientID() string {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	length := r.Intn(clientIDMaxLength-clientIDMinLength+1) + clientIDMinLength
+
+	clientID := make([]byte, length)
+	for i := range clientID {
+		clientID[i] = clientIDCharset[r.Intn(len(clientIDCharset))]
+	}
+
+	return clientIDPrefix + string(clientID)
+}
 
 // AutoRetry 失败后重试指定次数
 func AutoRetry(callback func() error, maxRetries int, interval time.Duration) (err error) {

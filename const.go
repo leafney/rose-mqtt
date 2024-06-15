@@ -15,3 +15,10 @@ const (
 	Qos1 QosType = 1
 	Qos2 QosType = 2
 )
+
+const (
+	clientIDCharset   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	clientIDMinLength = 8        // 随机字符串最小长度
+	clientIDMaxLength = 14       // 随机字符串最大长度
+	clientIDPrefix    = "rmqtt-" // 前缀
+)
