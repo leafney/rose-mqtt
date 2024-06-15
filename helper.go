@@ -11,6 +11,7 @@ package rmqtt
 import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -46,4 +47,34 @@ func ReconnectManualHandler(client mqtt.Client, err error) {
 	}
 
 	log.Println("Maximum reconnection attempts reached, giving up.")
+}
+
+func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for key, handler := range c.subHandlers {
+		go func(topic string, cb mqtt.MessageHandler) {
+			split := strings.Split(topic, "#")
+			if len(split) == 2 {
+				var qos QosType
+				switch split[1] {
+				case "0":
+					qos = Qos0
+				case "1":
+					qos = Qos1
+				case "2":
+					qos = Qos2
+				default:
+					qos = Qos0
+				}
+
+				if err := c.sub(split[0], qos, cb); err != nil {
+					log.Printf("[Error] topic [%v] reconnect register error [%v]", split[0], err)
+				}
+				if c.debug {
+					log.Printf("[Info] topic [%v] reconnect register success", split[0])
+				}
+			}
+		}(key, handler)
+	}
 }

@@ -27,7 +27,7 @@ const (
 type ReConnType string
 
 const (
-	RCTDefault   ReConnType = ""       // 默认
-	RCTAutomatic ReConnType = "auto"   // 自动
-	RCTManual    ReConnType = "manual" // 手动
+	ReConnTypeDefault   ReConnType = ""       // 默认
+	ReConnTypeAutomatic ReConnType = "auto"   // 自动
+	ReConnTypeManual    ReConnType = "manual" // 手动
 )

@@ -22,7 +22,7 @@ type MQTTClient struct {
 	client      mqtt.Client
 	Ops         *mqtt.ClientOptions
 	mu          *sync.Mutex
-	Topics      []string                       // topic 集合
+	topics      []string                       // topic 集合
 	subHandlers map[string]mqtt.MessageHandler // key:topic#qos value:handler
 }
 
@@ -102,13 +102,13 @@ func NewMQTTClient(brokerURI string, cfg *Config) *MQTTClient {
 
 	// 自动重连配置
 	switch cfg.reconnectType {
-	case RCTAutomatic:
+	case ReConnTypeAutomatic:
 		//	自动重连
 		ops.SetAutoReconnect(true)
 		ops.SetConnectRetry(true)
 		ops.SetConnectRetryInterval(5 * time.Second)
 		ops.SetMaxReconnectInterval(60 * time.Second)
-	case RCTManual:
+	case ReConnTypeManual:
 		//	手动重连
 		ops.SetAutoReconnect(false)
 		ops.SetConnectionLostHandler(ReconnectManualHandler)
@@ -141,9 +141,9 @@ func NewMQTTClient(brokerURI string, cfg *Config) *MQTTClient {
 }
 
 func (c *MQTTClient) Connect() (err error) {
-	//if c.Ops.OnConnect == nil {
-	//	//c.Ops.OnConnect=c.
-	//}
+	if c.Ops.OnConnect == nil {
+		c.Ops.OnConnect = c.DefaultOnConnect
+	}
 
 	//
 	c.client = mqtt.NewClient(c.Ops)
@@ -215,9 +215,9 @@ func (c *MQTTClient) tryConnect() error {
 }
 
 func (c *MQTTClient) Close() {
-	if len(c.Topics) > 0 {
-		c.client.Unsubscribe(c.Topics...)
-		c.Topics = nil
+	if len(c.topics) > 0 {
+		c.client.Unsubscribe(c.topics...)
+		c.topics = nil
 	}
 	c.subHandlers = nil
 	c.client.Disconnect(1000)

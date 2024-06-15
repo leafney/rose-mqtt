@@ -41,10 +41,11 @@ func (c *MQTTClient) sub(topic string, qos QosType, callback mqtt.MessageHandler
 }
 
 func (c *MQTTClient) Subscribe(topic string, qos QosType, callback mqtt.MessageHandler) error {
-	//c.mu.Lock()
-	//c.subHandlers[SubCallbackKey(topic, qos)] = callback
-	//c.Topics = append(c.Topics, topic)
-	//c.mu.Unlock()
+	c.mu.Lock()
+	c.subHandlers[SubCallbackKey(topic, qos)] = callback
+	c.topics = append(c.topics, topic)
+	c.mu.Unlock()
+
 	return c.sub(topic, qos, callback)
 }
 
@@ -80,6 +81,11 @@ func (c *MQTTClient) subMultiple(filters map[string]QosType, callback mqtt.Messa
 }
 
 func (c *MQTTClient) SubscribeMultiple(topics map[string]QosType, callback mqtt.MessageHandler) error {
+	c.mu.Lock()
+	//c.subHandlers[SubCallbackKey(topic, qos)] = callback
+	//c.topics = append(c.topics, topic)
+	c.mu.Unlock()
+
 	return c.subMultiple(topics, callback)
 }
 

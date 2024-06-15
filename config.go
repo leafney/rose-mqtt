@@ -82,7 +82,7 @@ func NewConfig(options ...Option) *Config {
 	// 默认值
 	cfg := &Config{
 		cleanSession:  true,
-		reconnectType: RCTDefault,
+		reconnectType: ReConnTypeDefault,
 		clientId:      generateRandomClientID(),
 	}
 	// 初始配置
@@ -129,12 +129,6 @@ func (c *Config) SetReconnectType(t ReConnType) *Config {
 	c.reconnectType = t
 	return c
 }
-
-//func (c *Config) SetReconnectManualHandler(handler mqtt.ConnectionLostHandler) *Config {
-//	//
-//
-//	return c
-//}
 
 func (c *Config) SetTLSConfig() {
 
