@@ -17,13 +17,13 @@ import (
 func (c *MQTTClient) sub(topic string, qos QosType, callback mqtt.MessageHandler) error {
 	token := c.client.Subscribe(topic, byte(qos), callback)
 
-	success := false
+	waitRes := false
 	if c.waitTimeout > 0 {
-		success = token.WaitTimeout(c.waitTimeout)
+		waitRes = token.WaitTimeout(c.waitTimeout)
 	} else {
-		success = token.Wait()
+		waitRes = token.Wait()
 	}
-	if !success {
+	if !waitRes {
 		return fmt.Errorf("wait timeout")
 	}
 
@@ -48,18 +48,64 @@ func (c *MQTTClient) Subscribe(topic string, qos QosType, callback mqtt.MessageH
 	return c.sub(topic, qos, callback)
 }
 
-type Consumer struct {
-	Topic    string
-	QosType  QosType
-	Callback mqtt.MessageHandler
+func (c *MQTTClient) subMultiple(filters map[string]QosType, callback mqtt.MessageHandler) error {
+	topics := map[string]byte{}
+	for t, q := range filters {
+		topics[t] = byte(q)
+	}
+
+	token := c.client.SubscribeMultiple(topics, callback)
+
+	waitRes := false
+	if c.waitTimeout > 0 {
+		waitRes = token.WaitTimeout(c.waitTimeout)
+	} else {
+		waitRes = token.Wait()
+	}
+	if !waitRes {
+		return fmt.Errorf("wait timeout")
+	}
+
+	if err := token.Error(); err != nil {
+		if c.debug {
+			log.Printf("[Error] ** SubscribeMultiple ** ClientID [%v] topics [%v] error [%v]", c.Ops.ClientID, topics, err)
+		}
+		return err
+	}
+
+	if c.debug {
+		log.Printf("[Info] ** SubscribeMultiple ** ClientID [%v] topics [%v] success", c.Ops.ClientID, topics)
+	}
+	return nil
 }
 
-func (c *MQTTClient) subConsumer(consumer *Consumer) {
-	err := c.Subscribe(consumer.Topic, consumer.QosType, consumer.Callback)
-	if err != nil {
-		log.Printf("[Error] subscribe topic [%v]", consumer.Topic)
+func (c *MQTTClient) SubscribeMultiple(topics map[string]QosType, callback mqtt.MessageHandler) error {
+	return c.subMultiple(topics, callback)
+}
+
+type (
+	Consumer struct {
+		Topic    string
+		QosType  QosType
+		CallBack mqtt.MessageHandler
 	}
-	log.Printf("[Info] subscribe topic [%v]", consumer.Topic)
+
+	MultipleConsumer struct {
+		Topics   map[string]QosType
+		CallBack mqtt.MessageHandler
+	}
+)
+
+func (c *MQTTClient) subConsumer(consumer *Consumer) {
+	err := c.Subscribe(consumer.Topic, consumer.QosType, consumer.CallBack)
+	if err != nil {
+		if c.debug {
+			log.Printf("[Error] ** subConsumer ** topic [%v] error [%v]", consumer.Topic, err)
+		}
+	}
+	if c.debug {
+		log.Printf("[Info] ** subConsumer ** topic [%v] success", consumer.Topic)
+	}
 }
 
 // RegisterConsumers 批量注册消费者
@@ -71,4 +117,26 @@ func (c *MQTTClient) RegisterConsumers(consumers []*Consumer) {
 
 func (c *MQTTClient) RegisterConsumer(consumer *Consumer) {
 	go c.subConsumer(consumer)
+}
+
+func (c *MQTTClient) subMultipleConsumer(mConsumer *MultipleConsumer) {
+	err := c.SubscribeMultiple(mConsumer.Topics, mConsumer.CallBack)
+	if err != nil {
+		if c.debug {
+			log.Printf("[Error] ** subMultipleConsumer ** topics [%v] error [%v]", mConsumer.Topics, err)
+		}
+	}
+	if c.debug {
+		log.Printf("[Info] ** subMultipleConsumer ** topics [%v] success", mConsumer.Topics)
+	}
+}
+
+func (c *MQTTClient) RegisterMultipleConsumer(mConsumer *MultipleConsumer) {
+	go c.subMultipleConsumer(mConsumer)
+}
+
+func (c *MQTTClient) RegisterMultipleConsumers(mConsumers []*MultipleConsumer) {
+	for _, mConsumer := range mConsumers {
+		go c.subMultipleConsumer(mConsumer)
+	}
 }

@@ -46,14 +46,14 @@ func TestNewMClient(t *testing.T) {
 	//	{
 	//		Topic:   "yili/1",
 	//		QosType: Qos0,
-	//		Callback: func(c mqtt.Client, msg mqtt.Message) {
+	//		CallBack: func(c mqtt.Client, msg mqtt.Message) {
 	//			t.Logf("topic [%v] msg [%v]", msg.Topic(), string(msg.Payload()))
 	//		},
 	//	},
 	//	{
 	//		Topic:   "yili/2",
 	//		QosType: Qos0,
-	//		Callback: func(c mqtt.Client, msg mqtt.Message) {
+	//		CallBack: func(c mqtt.Client, msg mqtt.Message) {
 	//			t.Logf("topic [%v] msg [%v]", msg.Topic(), string(msg.Payload()))
 	//		},
 	//	},
@@ -88,6 +88,18 @@ func TestSecond(t *testing.T) {
 	)
 	//cfg.SetClientID("3499587")
 
+	cfg.defaultHandler = func(_ mqtt.Client, m mqtt.Message) {
+		log.Printf("Default callback topic [%v] msg [%v]", m.Topic(), string(m.Payload()))
+	}
+
+	cfg.connHandler = func(_ mqtt.Client) {
+		log.Println("start connect")
+	}
+
+	cfg.connLostHandler = func(c mqtt.Client, e error) {
+		log.Printf("connect err [%v]", e)
+	}
+
 	c := NewMQTTClient(brokerURL, cfg)
 
 	if err := c.Connect(); err != nil {
@@ -98,8 +110,23 @@ func TestSecond(t *testing.T) {
 	c.RegisterConsumer(&Consumer{
 		Topic:   "topic/hello",
 		QosType: 0,
-		Callback: func(_ mqtt.Client, m mqtt.Message) {
+		CallBack: func(_ mqtt.Client, m mqtt.Message) {
 			log.Printf("Subscribe333 callback topic [%v] msg [%v]", m.Topic(), string(m.Payload()))
+		},
+	})
+
+	// 接收，没有处理函数，由默认处理函数处理
+	c.RegisterConsumer(&Consumer{Topic: "topic/hello2", QosType: 1})
+
+	// 接收，
+	c.RegisterMultipleConsumer(&MultipleConsumer{
+		Topics: map[string]QosType{
+			"topic/hello3": Qos0,
+			"topic/hello4": Qos1,
+			"topic/hello5": Qos1,
+		},
+		CallBack: func(c mqtt.Client, m mqtt.Message) {
+			log.Printf("Subscribe444 callback topic [%v] msg [%v]", m.Topic(), string(m.Payload()))
 		},
 	})
 
