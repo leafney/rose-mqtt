@@ -9,19 +9,21 @@
 package rmqtt
 
 import (
+	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"log"
 	"sync"
 	"time"
 )
 
 type MQTTClient struct {
 	debug       bool
-	ClientId    string
+	waitTimeout time.Duration
 	client      mqtt.Client
 	Ops         *mqtt.ClientOptions
 	mu          *sync.Mutex
 	Topics      []string                       // topic 集合
-	msgHandlers map[string]mqtt.MessageHandler // key:topic#qos value:handler
+	subHandlers map[string]mqtt.MessageHandler // key:topic#qos value:handler
 }
 
 /*
@@ -60,7 +62,7 @@ func NewMQTTClient(brokerURI string, options ...Option) *MQTTClient {
 	mc := &MQTTClient{
 		Ops:         ops,
 		mu:          &sync.Mutex{},
-		msgHandlers: map[string]mqtt.MessageHandler{},
+		subHandlers: map[string]mqtt.MessageHandler{},
 	}
 
 	for _, opt := range options {
@@ -83,19 +85,35 @@ func NewMQTTClient(brokerURI string, cfg *Config) *MQTTClient {
 	ops := mqtt.NewClientOptions()
 	ops.AddBroker(brokerURI)
 
-	//ops.SetUsername(cfg.username)
-	//ops.SetPassword(cfg.password)
-	ops.SetClientID(cfg.clientId)
-
+	if !IsStrEmpty(cfg.username) {
+		ops.SetUsername(cfg.username)
+	}
+	if !IsStrEmpty(cfg.password) {
+		ops.SetPassword(cfg.password)
+	}
+	if !IsStrEmpty(cfg.clientId) {
+		ops.SetClientID(cfg.clientId)
+	}
 	if cfg.keepAlive > 0 {
 		ops.SetKeepAlive(cfg.keepAlive)
 	}
 
+	ops.SetCleanSession(cfg.cleanSession)
+	ops.SetAutoReconnect(cfg.autoReconnect)
+
+	ops.SetDefaultPublishHandler(cfg.defaultHandler)  // 当接收数据没有匹配的处理函数时触发
+	ops.SetOnConnectHandler(cfg.connHandler)          // 连接回调
+	ops.SetConnectionLostHandler(cfg.connLostHandler) // 连接意外中断回调
+	//ops.set
+
+	//ops.setde
+
 	return &MQTTClient{
 		debug:       cfg.debug,
+		waitTimeout: cfg.waitTimeout,
 		Ops:         ops,
 		mu:          &sync.Mutex{},
-		msgHandlers: map[string]mqtt.MessageHandler{},
+		subHandlers: map[string]mqtt.MessageHandler{},
 	}
 }
 
@@ -104,27 +122,50 @@ func (c *MQTTClient) Connect() (err error) {
 	//	//c.Ops.OnConnect=c.
 	//}
 
-	//fmt.Printf("ops [%v]", rose.JsonMarshalStr(&c.Ops))
-
 	//
 	c.client = mqtt.NewClient(c.Ops)
-	// 连接，自动重试
-	err = AutoRetry(func() error {
-		if token := c.client.Connect(); token.Wait() && token.Error() != nil {
-			err = token.Error()
-			return err
-		}
-		return nil
-	}, 3, 5*time.Second)
-	if err != nil {
-		return err
-	}
-
+	// 连接，默认
 	//if token := c.client.Connect(); token.Wait() && token.Error() != nil {
 	//	err = token.Error()
 	//	return err
 	//}
 
+	// 连接，自动重试
+	//err = AutoRetry(func() error {
+	//	if token := c.client.Connect(); token.Wait() && token.Error() != nil {
+	//		err = token.Error()
+	//		return err
+	//	}
+	//	return nil
+	//}, 3, 5*time.Second)
+
+	// 连接，自动重试 优化
+	err = AutoRetry(c.tryConnect, 3, 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *MQTTClient) tryConnect() error {
+	token := c.client.Connect()
+	waitRes := false
+	if c.waitTimeout > 0 {
+		waitRes = token.WaitTimeout(c.waitTimeout)
+	} else {
+		waitRes = token.Wait()
+	}
+	if !waitRes {
+		return fmt.Errorf("wait timeout")
+	}
+
+	if err := token.Error(); err != nil {
+		if c.debug {
+			log.Printf("[Error] tryConnect error [%v]", err)
+		}
+		return err
+	}
 	return nil
 }
 
@@ -133,6 +174,6 @@ func (c *MQTTClient) Close() {
 		c.client.Unsubscribe(c.Topics...)
 		c.Topics = nil
 	}
-	c.msgHandlers = nil
+	c.subHandlers = nil
 	c.client.Disconnect(1000)
 }

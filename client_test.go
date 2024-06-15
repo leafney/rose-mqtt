@@ -14,8 +14,13 @@ import (
 	"testing"
 )
 
+const (
+	brokerURL = "tcp://broker.emqx.io:1883"
+)
+
 func TestNewMClient(t *testing.T) {
-	URL := "tcp://broker.emqx.io:1883"
+
+	// 第一版
 	//c := NewMQTTClient("tcp://broker.emqx.io:1883", WithDebug(true), WithClientID("93949"))
 	//.SetClientID("009988")
 
@@ -24,13 +29,15 @@ func TestNewMClient(t *testing.T) {
 	//.
 	//	SetKeepAliveSec(60)
 
+	// 第二版
 	cfg := NewConfig(
 		WithDebug(true),
 		//WithUserAndPwd("", ""),
 	)
 	//cfg.SetClientID("3499587")
 
-	c := NewMQTTClient(URL, cfg)
+	c := NewMQTTClient(brokerURL, cfg)
+
 	if err := c.Connect(); err != nil {
 		t.Fatal(err)
 	}
@@ -54,14 +61,14 @@ func TestNewMClient(t *testing.T) {
 
 	//c.RegisterConsumers(cs)
 
-	go func() {
-		if err := c.Sub("topic/hello", Qos1, func(_ mqtt.Client, msg mqtt.Message) {
-			log.Printf("topic [%v] msg [%v]", msg.Topic(), string(msg.Payload()))
-		}); err != nil {
-			t.Error(err)
-		}
-		//log.Println("等待 subscribe")
-	}()
+	//go func() {
+	//	if err := c.Sub("topic/hello", Qos1, func(_ mqtt.Client, msg mqtt.Message) {
+	//		log.Printf("topic [%v] msg [%v]", msg.Topic(), string(msg.Payload()))
+	//	}); err != nil {
+	//		t.Error(err)
+	//	}
+	//	//log.Println("等待 subscribe")
+	//}()
 
 	//for i := 0; i < 10; i++ {
 	//	topic := fmt.Sprintf("yili/%v", i%2+1)
@@ -71,4 +78,30 @@ func TestNewMClient(t *testing.T) {
 
 	select {}
 	//	c.Close()
+}
+
+func TestSecond(t *testing.T) {
+	cfg := NewConfig(
+		WithDebug(true),
+		//WithUserAndPwd("", ""),
+
+	)
+	//cfg.SetClientID("3499587")
+
+	c := NewMQTTClient(brokerURL, cfg)
+
+	if err := c.Connect(); err != nil {
+		t.Fatal(err)
+	}
+
+	// 接收
+	c.RegisterConsumer(&Consumer{
+		Topic:   "topic/hello",
+		QosType: 0,
+		Callback: func(_ mqtt.Client, m mqtt.Message) {
+			log.Printf("Subscribe333 callback topic [%v] msg [%v]", m.Topic(), string(m.Payload()))
+		},
+	})
+
+	select {}
 }
