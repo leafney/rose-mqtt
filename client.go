@@ -17,13 +17,14 @@ import (
 )
 
 type MQTTClient struct {
-	debug       bool
-	waitTimeout time.Duration
-	client      mqtt.Client
-	Ops         *mqtt.ClientOptions
-	mu          *sync.Mutex
-	topics      []string                       // topic 集合
-	subHandlers map[string]mqtt.MessageHandler // key:topic#qos value:handler
+	debug          bool
+	waitTimeout    time.Duration
+	client         mqtt.Client
+	Ops            *mqtt.ClientOptions
+	mu             *sync.Mutex
+	allTopics      []string                       // topic 集合
+	subHandlers    map[string]mqtt.MessageHandler // key:topic#qos value:handler
+	subMutHandlers map[string]mqtt.MessageHandler
 }
 
 /*
@@ -127,16 +128,13 @@ func NewMQTTClient(brokerURI string, cfg *Config) *MQTTClient {
 		ops.SetConnectionLostHandler(cfg.connLostHandler) // 连接意外中断回调
 	}
 
-	//ops.set
-
-	//ops.setde
-
 	return &MQTTClient{
-		debug:       cfg.debug,
-		waitTimeout: cfg.waitTimeout,
-		Ops:         ops,
-		mu:          &sync.Mutex{},
-		subHandlers: map[string]mqtt.MessageHandler{},
+		debug:          cfg.debug,
+		waitTimeout:    cfg.waitTimeout,
+		Ops:            ops,
+		mu:             &sync.Mutex{},
+		subHandlers:    map[string]mqtt.MessageHandler{},
+		subMutHandlers: map[string]mqtt.MessageHandler{},
 	}
 }
 
@@ -215,9 +213,9 @@ func (c *MQTTClient) tryConnect() error {
 }
 
 func (c *MQTTClient) Close() {
-	if len(c.topics) > 0 {
-		c.client.Unsubscribe(c.topics...)
-		c.topics = nil
+	if len(c.allTopics) > 0 {
+		c.client.Unsubscribe(c.allTopics...)
+		c.allTopics = nil
 	}
 	c.subHandlers = nil
 	c.client.Disconnect(1000)

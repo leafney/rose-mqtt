@@ -49,6 +49,7 @@ func ReconnectManualHandler(client mqtt.Client, err error) {
 	log.Println("Maximum reconnection attempts reached, giving up.")
 }
 
+// DefaultOnConnect 重连后自动注册订阅
 func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -74,6 +75,22 @@ func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
 				if c.debug {
 					log.Printf("[Info] topic [%v] reconnect register success", split[0])
 				}
+			}
+		}(key, handler)
+	}
+
+	for key, handler := range c.subMutHandlers {
+		go func(topic string, cb mqtt.MessageHandler) {
+			//
+			var result []TopicQosPair
+			JsonUnMarshal(topic, &result)
+			resMap := ConvOrderedArrayToMap(result)
+
+			if err := c.subMultiple(resMap, cb); err != nil {
+				log.Printf("[Error] topic [%v] reconnect register error [%v]", resMap, err)
+			}
+			if c.debug {
+				log.Printf("[Info] topic [%v] reconnect register success", resMap)
 			}
 		}(key, handler)
 	}

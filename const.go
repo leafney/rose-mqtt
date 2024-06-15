@@ -31,3 +31,8 @@ const (
 	ReConnTypeAutomatic ReConnType = "auto"   // 自动
 	ReConnTypeManual    ReConnType = "manual" // 手动
 )
+
+type TopicQosPair struct {
+	Topic string
+	Qos   QosType
+}

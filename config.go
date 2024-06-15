@@ -71,13 +71,6 @@ func WithWaitTimeoutSec(sec int64) Option {
 	}
 }
 
-// WithReconnectType 设置重连机制
-func WithReconnectType(t ReConnType) Option {
-	return func(c *Config) {
-		c.reconnectType = t
-	}
-}
-
 func NewConfig(options ...Option) *Config {
 	// 默认值
 	cfg := &Config{
