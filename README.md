@@ -5,10 +5,22 @@ Golang Toolkit for MQTT
 
 - MQTT v3.1.1
 
+## Demo
+
+```go
+
+```
+
 ## Methods
+
+### Config
+
+- `WithXXX`
+- `SetXXX`
 
 ### Publish
 
+- `Publish()`
 
 ### Subscribe
 
@@ -18,5 +30,6 @@ Golang Toolkit for MQTT
 - `RegisterConsumers()`
 - `RegisterMultipleConsumer()`
 - `RegisterMultipleConsumers()`
+- `RegisterOnlyTopic()`
 
 ---

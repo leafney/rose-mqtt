@@ -8,12 +8,25 @@
 
 package rmqtt
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
-func (c *MQTTClient) Publish(topic string, qos QosType, payload interface{}) error {
-	token := c.client.Publish(topic, byte(qos), false, payload)
-	if token.Wait() && token.Error() != nil {
-		err := token.Error()
+func (c *MQTTClient) Publish(topic string, qos QosType, retained bool, payload interface{}) error {
+	token := c.client.Publish(topic, byte(qos), retained, payload)
+
+	waitRes := false
+	if c.waitTimeout > 0 {
+		waitRes = token.WaitTimeout(c.waitTimeout)
+	} else {
+		waitRes = token.Wait()
+	}
+	if !waitRes {
+		return fmt.Errorf("wait timeout")
+	}
+
+	if err := token.Error(); err != nil {
 		if c.debug {
 			log.Printf("[Error] ** Publish ** ClientID [%v] topic [%v] qos [%v] error [%v]", c.Ops.ClientID, topic, qos, err)
 		}

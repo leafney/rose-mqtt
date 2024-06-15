@@ -124,11 +124,12 @@ func (c *MQTTClient) Connect() (err error) {
 
 	//
 	c.client = mqtt.NewClient(c.Ops)
+
 	// 连接，默认
-	//if token := c.client.Connect(); token.Wait() && token.Error() != nil {
-	//	err = token.Error()
-	//	return err
-	//}
+	if token := c.client.Connect(); token.Wait() && token.Error() != nil {
+		err = token.Error()
+		return err
+	}
 
 	// 连接，自动重试
 	//err = AutoRetry(func() error {
@@ -139,11 +140,11 @@ func (c *MQTTClient) Connect() (err error) {
 	//	return nil
 	//}, 3, 5*time.Second)
 
-	// 连接，自动重试 优化
-	err = AutoRetry(c.tryConnect, 3, 5*time.Second)
-	if err != nil {
-		return err
-	}
+	//// 连接，自动重试 优化
+	//err = AutoRetry(c.tryConnect, 3, 5*time.Second)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }

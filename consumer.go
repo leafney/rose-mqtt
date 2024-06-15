@@ -140,3 +140,10 @@ func (c *MQTTClient) RegisterMultipleConsumers(mConsumers []*MultipleConsumer) {
 		go c.subMultipleConsumer(mConsumer)
 	}
 }
+
+func (c *MQTTClient) RegisterOnlyTopic(topic string, qos QosType) {
+	c.RegisterConsumer(&Consumer{
+		Topic:   topic,
+		QosType: qos,
+	})
+}

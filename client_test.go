@@ -84,7 +84,7 @@ func TestSecond(t *testing.T) {
 	cfg := NewConfig(
 		WithDebug(true),
 		//WithUserAndPwd("", ""),
-
+		//WithClientID("123456"),
 	)
 	//cfg.SetClientID("3499587")
 
@@ -103,7 +103,7 @@ func TestSecond(t *testing.T) {
 	c := NewMQTTClient(brokerURL, cfg)
 
 	if err := c.Connect(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("connect error error [%v]", err)
 	}
 
 	// 接收
@@ -129,6 +129,14 @@ func TestSecond(t *testing.T) {
 			log.Printf("Subscribe444 callback topic [%v] msg [%v]", m.Topic(), string(m.Payload()))
 		},
 	})
+
+	//for i := 0; i < 10; i++ {
+	//	msg := fmt.Sprintf("message-%v", i)
+	//	if err := c.Publish("topic/hello4", Qos1, false, msg); err != nil {
+	//		log.Printf("publish error [%v]", err)
+	//	}
+	//	time.Sleep(1 * time.Second)
+	//}
 
 	select {}
 }
