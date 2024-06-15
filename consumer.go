@@ -24,7 +24,7 @@ func (c *MQTTClient) sub(topic string, qos QosType, callback mqtt.MessageHandler
 		waitRes = token.Wait()
 	}
 	if !waitRes {
-		return fmt.Errorf("wait timeout")
+		return fmt.Errorf("wait timeout for %v", c.waitTimeout)
 	}
 
 	if err := token.Error(); err != nil {
@@ -63,7 +63,7 @@ func (c *MQTTClient) subMultiple(filters map[string]QosType, callback mqtt.Messa
 		waitRes = token.Wait()
 	}
 	if !waitRes {
-		return fmt.Errorf("wait timeout")
+		return fmt.Errorf("wait timeout for %v", c.waitTimeout)
 	}
 
 	if err := token.Error(); err != nil {

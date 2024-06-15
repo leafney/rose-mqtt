@@ -99,11 +99,34 @@ func NewMQTTClient(brokerURI string, cfg *Config) *MQTTClient {
 	}
 
 	ops.SetCleanSession(cfg.cleanSession)
-	ops.SetAutoReconnect(cfg.autoReconnect)
 
-	ops.SetDefaultPublishHandler(cfg.defaultHandler)  // 当接收数据没有匹配的处理函数时触发
-	ops.SetOnConnectHandler(cfg.connHandler)          // 连接回调
-	ops.SetConnectionLostHandler(cfg.connLostHandler) // 连接意外中断回调
+	// 自动重连配置
+	switch cfg.reconnectType {
+	case RCTAutomatic:
+		//	自动重连
+		ops.SetAutoReconnect(true)
+		ops.SetConnectRetry(true)
+		ops.SetConnectRetryInterval(5 * time.Second)
+		ops.SetMaxReconnectInterval(60 * time.Second)
+	case RCTManual:
+		//	手动重连
+		ops.SetAutoReconnect(false)
+		ops.SetConnectionLostHandler(ReconnectManualHandler)
+	default:
+		//	默认
+	}
+
+	if cfg.defaultHandler != nil {
+		ops.SetDefaultPublishHandler(cfg.defaultHandler) // 当接收数据没有匹配的处理函数时触发
+	}
+
+	if cfg.connHandler != nil {
+		ops.SetOnConnectHandler(cfg.connHandler) // 连接回调
+	}
+	if cfg.connLostHandler != nil {
+		ops.SetConnectionLostHandler(cfg.connLostHandler) // 连接意外中断回调
+	}
+
 	//ops.set
 
 	//ops.setde
@@ -126,9 +149,30 @@ func (c *MQTTClient) Connect() (err error) {
 	c.client = mqtt.NewClient(c.Ops)
 
 	// 连接，默认
-	if token := c.client.Connect(); token.Wait() && token.Error() != nil {
-		err = token.Error()
+	//if token := c.client.Connect(); token.Wait() && token.Error() != nil {
+	//	err = token.Error()
+	//	return err
+	//}
+
+	// 连接，自定义超时时间
+	token := c.client.Connect()
+	waitRes := false
+	if c.waitTimeout > 0 {
+		waitRes = token.WaitTimeout(c.waitTimeout)
+	} else {
+		waitRes = token.Wait()
+	}
+	if !waitRes {
+		return fmt.Errorf("wait timeout for %v", c.waitTimeout)
+	}
+	if err := token.Error(); err != nil {
+		if c.debug {
+			log.Printf("[Error] ** Connect ** ClientID [%v] error [%v]", c.Ops.ClientID, err)
+		}
 		return err
+	}
+	if c.debug {
+		log.Printf("[Info] ** Connect ** ClientID [%v] success", c.Ops.ClientID)
 	}
 
 	// 连接，自动重试
@@ -158,7 +202,7 @@ func (c *MQTTClient) tryConnect() error {
 		waitRes = token.Wait()
 	}
 	if !waitRes {
-		return fmt.Errorf("wait timeout")
+		return fmt.Errorf("wait timeout for %v", c.waitTimeout)
 	}
 
 	if err := token.Error(); err != nil {

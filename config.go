@@ -15,13 +15,14 @@ import (
 
 type Config struct {
 	debug         bool
-	clientId      string // 客户端 Id
-	cleanSession  bool   // 断线后是否清理会话
-	username      string // 用户名
-	password      string // 用户密码
-	keepAlive     time.Duration
+	clientId      string        // 客户端 Id
+	cleanSession  bool          // 断线后是否清理会话
+	username      string        // 用户名
+	password      string        // 用户密码
+	keepAlive     time.Duration // 保活时间
 	waitTimeout   time.Duration // 等待时间
-	autoReconnect bool          // 是否自动重连
+	reconnectType ReConnType    // 自动重连选项
+	// 自动重连配置
 
 	defaultHandler  mqtt.MessageHandler        // 发布消息回调
 	connHandler     mqtt.OnConnectHandler      // 连接回调
@@ -52,11 +53,36 @@ func WithClientID(id string) Option {
 	}
 }
 
+func WithCleanSession(clean bool) Option {
+	return func(c *Config) {
+		c.cleanSession = clean
+	}
+}
+
+func WithWaitTimeout(t time.Duration) Option {
+	return func(c *Config) {
+		c.waitTimeout = t
+	}
+}
+
+func WithWaitTimeoutSec(sec int64) Option {
+	return func(c *Config) {
+		c.waitTimeout = time.Duration(sec) * time.Second
+	}
+}
+
+// WithReconnectType 设置重连机制
+func WithReconnectType(t ReConnType) Option {
+	return func(c *Config) {
+		c.reconnectType = t
+	}
+}
+
 func NewConfig(options ...Option) *Config {
 	// 默认值
 	cfg := &Config{
 		cleanSession:  true,
-		autoReconnect: true,
+		reconnectType: RCTDefault,
 		clientId:      generateRandomClientID(),
 	}
 	// 初始配置
@@ -88,6 +114,27 @@ func (c *Config) SetUserAndPwd(userName, passWord string) *Config {
 	c.password = passWord
 	return c
 }
+
+func (c *Config) SetCleanSession(clean bool) *Config {
+	c.cleanSession = clean
+	return c
+}
+
+func (c *Config) SetWaitTimeout(t time.Duration) *Config {
+	c.waitTimeout = t
+	return c
+}
+
+func (c *Config) SetReconnectType(t ReConnType) *Config {
+	c.reconnectType = t
+	return c
+}
+
+//func (c *Config) SetReconnectManualHandler(handler mqtt.ConnectionLostHandler) *Config {
+//	//
+//
+//	return c
+//}
 
 func (c *Config) SetTLSConfig() {
 

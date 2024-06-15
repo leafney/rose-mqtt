@@ -23,7 +23,7 @@ func (c *MQTTClient) Publish(topic string, qos QosType, retained bool, payload i
 		waitRes = token.Wait()
 	}
 	if !waitRes {
-		return fmt.Errorf("wait timeout")
+		return fmt.Errorf("wait timeout for %v", c.waitTimeout)
 	}
 
 	if err := token.Error(); err != nil {

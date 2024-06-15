@@ -22,3 +22,12 @@ const (
 	clientIDMaxLength = 14       // 随机字符串最大长度
 	clientIDPrefix    = "rmqtt-" // 前缀
 )
+
+// 重试方式
+type ReConnType string
+
+const (
+	RCTDefault   ReConnType = ""       // 默认
+	RCTAutomatic ReConnType = "auto"   // 自动
+	RCTManual    ReConnType = "manual" // 手动
+)

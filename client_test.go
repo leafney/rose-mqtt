@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	brokerURL = "tcp://broker.emqx.io:1883"
+	brokerURL = "tcp://broker.emqx.io:1884"
 )
 
 func TestNewMClient(t *testing.T) {
@@ -84,9 +84,12 @@ func TestSecond(t *testing.T) {
 	cfg := NewConfig(
 		WithDebug(true),
 		//WithUserAndPwd("", ""),
-		//WithClientID("123456"),
+		WithClientID("123456"),
+		WithWaitTimeoutSec(20),
 	)
 	//cfg.SetClientID("3499587")
+
+	cfg.SetReconnectType(RCTManual)
 
 	cfg.defaultHandler = func(_ mqtt.Client, m mqtt.Message) {
 		log.Printf("Default callback topic [%v] msg [%v]", m.Topic(), string(m.Payload()))
@@ -96,9 +99,9 @@ func TestSecond(t *testing.T) {
 		log.Println("start connect")
 	}
 
-	cfg.connLostHandler = func(c mqtt.Client, e error) {
-		log.Printf("connect err [%v]", e)
-	}
+	//cfg.connLostHandler = func(c mqtt.Client, e error) {
+	//	log.Printf("connect err [%v]", e)
+	//}
 
 	c := NewMQTTClient(brokerURL, cfg)
 
