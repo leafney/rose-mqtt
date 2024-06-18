@@ -11,6 +11,7 @@ package rmqtt
 import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"log"
+	"slices"
 	"strings"
 	"time"
 )
@@ -53,9 +54,11 @@ func ReconnectManualHandler(client mqtt.Client, err error) {
 func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	//
 	for key, handler := range c.subHandlers {
 		go func(topic string, cb mqtt.MessageHandler) {
 			split := strings.Split(topic, "#")
+
 			if len(split) == 2 {
 				var qos QosType
 				switch split[1] {
@@ -69,6 +72,11 @@ func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
 					qos = Qos0
 				}
 
+				// 判断当前 topic 是否已被取消订阅
+				if !slices.Contains(c.allTopics, split[0]) {
+					return
+				}
+
 				if err := c.sub(split[0], qos, cb); err != nil {
 					log.Printf("[Error] topic [%v] reconnect register error [%v]", split[0], err)
 				}
@@ -79,12 +87,27 @@ func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
 		}(key, handler)
 	}
 
+	//
 	for key, handler := range c.subMutHandlers {
 		go func(topic string, cb mqtt.MessageHandler) {
 			//
 			var result []TopicQosPair
-			JsonUnMarshal(topic, &result)
-			resMap := ConvOrderedArrayToMap(result)
+			if err := JsonUnMarshal(topic, &result); err != nil {
+				if c.debug {
+					log.Printf("[Error] topic [%v] unmarshal error [%v]", topic, err)
+				}
+				return
+			}
+
+			// 判断当前的 topic 是否已被取消订阅
+			newResult := make([]TopicQosPair, 0)
+			for _, tq := range result {
+				if slices.Contains(c.allTopics, tq.Topic) {
+					newResult = append(newResult, tq)
+				}
+			}
+
+			resMap := ConvOrderedArrayToMap(newResult)
 
 			if err := c.subMultiple(resMap, cb); err != nil {
 				log.Printf("[Error] topic [%v] reconnect register error [%v]", resMap, err)

@@ -155,3 +155,16 @@ func (c *MQTTClient) RegisterOnlyTopic(topic string, qos QosType) {
 		QosType: qos,
 	})
 }
+
+func (c *MQTTClient) UnSubscribe(topics ...string) error {
+	// 取消订阅
+	token := c.client.Unsubscribe(topics...)
+	if token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+
+	//	移除 topics
+	c.allTopics = SliceRmvSubSlice(c.allTopics, topics)
+
+	return nil
+}

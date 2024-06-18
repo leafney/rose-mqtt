@@ -23,8 +23,8 @@ type MQTTClient struct {
 	Ops            *mqtt.ClientOptions
 	mu             *sync.Mutex
 	allTopics      []string                       // topic 集合
-	subHandlers    map[string]mqtt.MessageHandler // key:topic#qos value:handler
-	subMutHandlers map[string]mqtt.MessageHandler
+	subHandlers    map[string]mqtt.MessageHandler // 单独订阅时 key:topic#qos value:handler
+	subMutHandlers map[string]mqtt.MessageHandler // 多个 topic 同时订阅时 key: json([{topic1:qos1},{topic2:qos2}]) value: handle
 }
 
 /*

@@ -89,6 +89,34 @@ func JsonMarshal(v interface{}) string {
 	return string(bt)
 }
 
-func JsonUnMarshal(s string, v interface{}) {
-	json.Unmarshal([]byte(s), v)
+func JsonUnMarshal(s string, v interface{}) error {
+	return json.Unmarshal([]byte(s), v)
+}
+
+func SliceRemoveOne(slice []string, value string) []string {
+	for i := 0; i < len(slice); i++ {
+		if slice[i] == value {
+			slice = append(slice[:i], slice[i+1:]...)
+			i--
+		}
+	}
+	return slice
+}
+
+func SliceRmvSubSlice(source []string, remove []string) []string {
+	result := make([]string, 0)
+
+	for _, s := range source {
+		found := false
+		for _, r := range remove {
+			if s == r {
+				found = true
+				break
+			}
+		}
+		if !found {
+			result = append(result, s)
+		}
+	}
+	return result
 }
