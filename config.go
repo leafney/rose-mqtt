@@ -22,15 +22,26 @@ type Config struct {
 	keepAlive     time.Duration // 保活时间
 	waitTimeout   time.Duration // 等待时间
 	reconnectType ReConnType    // 自动重连选项
+
 	//willEnabled     bool          // 遗嘱消息
 	willTopic         string
 	willPayload       []byte
 	willQos           QosLevel
 	willPayloadIsByte bool
 	willRetained      bool
-	defaultHandler    mqtt.MessageHandler        // 发布消息回调
-	connHandler       mqtt.OnConnectHandler      // 连接回调
-	connLostHandler   mqtt.ConnectionLostHandler // 连接意外中断回调
+
+	// tls
+	tlsVerify         bool   // 安全性验证
+	tlsCaCert         string // CA证书
+	tlsCaCertFile     string
+	tlsClientCert     string
+	tlsClientCertFile string
+	tlsClientKey      string
+	tlsClientKeyFile  string
+
+	defaultHandler  mqtt.MessageHandler        // 发布消息回调
+	connHandler     mqtt.OnConnectHandler      // 连接回调
+	connLostHandler mqtt.ConnectionLostHandler // 连接意外中断回调
 
 }
 
@@ -79,6 +90,7 @@ func NewConfig(options ...Option) *Config {
 	// 默认值
 	cfg := &Config{
 		cleanSession:  true,
+		tlsVerify:     false, // default skipVerify
 		reconnectType: ReConnTypeDefault,
 		clientId:      generateRandomClientID(),
 	}
@@ -127,15 +139,12 @@ func (c *Config) SetReconnectType(t ReConnType) *Config {
 	return c
 }
 
-func (c *Config) SetTLSConfig() {
-
-}
-
 //func (c *Config) SetWillEnabled(enabled bool) *Config {
 //	c.willEnabled = enabled
 //	return c
 //}
 
+// SetWill 设置遗嘱消息
 func (c *Config) SetWill(topic, payload string, qos QosLevel, retained bool) *Config {
 	c.willTopic = topic
 	c.willPayload = []byte(payload)
@@ -145,6 +154,7 @@ func (c *Config) SetWill(topic, payload string, qos QosLevel, retained bool) *Co
 	return c
 }
 
+// SetWillByte 设置遗嘱消息
 func (c *Config) SetWillByte(topic string, payload []byte, qos QosLevel, retained bool) *Config {
 	c.willTopic = topic
 	c.willPayload = payload
@@ -167,4 +177,28 @@ func (c *Config) SetConnHandler(handler mqtt.OnConnectHandler) *Config {
 func (c *Config) SetConnLostHandler(handler mqtt.ConnectionLostHandler) *Config {
 	c.connLostHandler = handler
 	return c
+}
+
+func (c *Config) SetTlsCaCertFile(pem string) *Config {
+	c.tlsCaCertFile = pem
+	return c
+}
+
+func (c *Config) SetTlsClientCertFile(cert string, key string) *Config {
+	c.tlsClientCertFile = cert
+	c.tlsClientKeyFile = key
+	return c
+}
+
+func (c *Config) SetTlsConfig(verify bool) *Config {
+	c.tlsVerify = verify
+
+	// TODO 其他 tls 配置
+	//tls.NoClientCert
+	//tls.RequestClientCert
+	//tls.RequireAnyClientCert
+	//tls.RequireAndVerifyClientCert
+
+	return c
+
 }

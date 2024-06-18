@@ -9,9 +9,12 @@
 package rmqtt
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"log"
+	"os"
 	"sync"
 	"time"
 )
@@ -22,9 +25,18 @@ type MQTTClient struct {
 	client         mqtt.Client
 	Ops            *mqtt.ClientOptions
 	mu             *sync.Mutex
+	tls            tlsConfig
 	allTopics      []string                       // topic 集合
 	subHandlers    map[string]mqtt.MessageHandler // 单独订阅时 key:topic#qos value:handler
 	subMutHandlers map[string]mqtt.MessageHandler // 多个 topic 同时订阅时 key: json([{topic1:qos1},{topic2:qos2}]) value: handle
+}
+
+type tlsConfig struct {
+	enabled    bool
+	ca         string
+	verify     bool
+	clientKey  string
+	clientCert string
 }
 
 /*
@@ -137,10 +149,23 @@ func NewMQTTClient(brokerURI string, cfg *Config) *MQTTClient {
 		}
 	}
 
+	// tls
+	tlsCfg := tlsConfig{
+		enabled:    false,
+		ca:         cfg.tlsCaCertFile,
+		verify:     cfg.tlsVerify,
+		clientCert: cfg.tlsClientCertFile,
+		clientKey:  cfg.tlsClientKeyFile,
+	}
+	if !IsStrEmpty(cfg.tlsCaCertFile) {
+		tlsCfg.enabled = true
+	}
+
 	return &MQTTClient{
 		debug:          cfg.debug,
 		waitTimeout:    cfg.waitTimeout,
 		Ops:            opts,
+		tls:            tlsCfg,
 		mu:             &sync.Mutex{},
 		subHandlers:    map[string]mqtt.MessageHandler{},
 		subMutHandlers: map[string]mqtt.MessageHandler{},
@@ -152,7 +177,40 @@ func (c *MQTTClient) Connect() (err error) {
 		c.Ops.OnConnect = c.DefaultOnConnect
 	}
 
-	//
+	// tls
+	if c.tls.enabled {
+		tCfg := &tls.Config{
+			RootCAs:            nil,
+			ClientAuth:         tls.NoClientCert,
+			InsecureSkipVerify: !c.tls.verify, // 注意这里的值
+			Certificates:       nil,
+		}
+
+		certPool := x509.NewCertPool()
+		pemCerts, err := os.ReadFile(c.tls.ca)
+		if err != nil {
+			if c.debug {
+				log.Printf("[Error] tls config load CaCert file error [%v]", err)
+			}
+			return err
+		}
+		certPool.AppendCertsFromPEM(pemCerts)
+		tCfg.RootCAs = certPool
+
+		if !IsStrEmpty(c.tls.clientCert) && !IsStrEmpty(c.tls.clientKey) {
+			cert, err := tls.LoadX509KeyPair(c.tls.clientCert, c.tls.clientKey)
+			if err != nil {
+				if c.debug {
+					log.Printf("[Error] tls config load ClientCert and ClientKey error [%v]", err)
+				}
+				return err
+			}
+			tCfg.Certificates = []tls.Certificate{cert}
+		}
+
+		c.Ops.SetTLSConfig(tCfg)
+	}
+
 	c.client = mqtt.NewClient(c.Ops)
 
 	// 连接，默认
