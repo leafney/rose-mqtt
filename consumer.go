@@ -14,7 +14,7 @@ import (
 	"log"
 )
 
-func (c *MQTTClient) sub(topic string, qos QosType, callback mqtt.MessageHandler) error {
+func (c *MQTTClient) sub(topic string, qos QosLevel, callback mqtt.MessageHandler) error {
 	token := c.client.Subscribe(topic, byte(qos), callback)
 
 	waitRes := false
@@ -40,7 +40,7 @@ func (c *MQTTClient) sub(topic string, qos QosType, callback mqtt.MessageHandler
 	return nil
 }
 
-func (c *MQTTClient) Subscribe(topic string, qos QosType, callback mqtt.MessageHandler) error {
+func (c *MQTTClient) Subscribe(topic string, qos QosLevel, callback mqtt.MessageHandler) error {
 	c.mu.Lock()
 	c.subHandlers[SubCallbackKey(topic, qos)] = callback
 	c.allTopics = append(c.allTopics, topic)
@@ -49,7 +49,7 @@ func (c *MQTTClient) Subscribe(topic string, qos QosType, callback mqtt.MessageH
 	return c.sub(topic, qos, callback)
 }
 
-func (c *MQTTClient) subMultiple(filters map[string]QosType, callback mqtt.MessageHandler) error {
+func (c *MQTTClient) subMultiple(filters map[string]QosLevel, callback mqtt.MessageHandler) error {
 	topics := map[string]byte{}
 	for t, q := range filters {
 		topics[t] = byte(q)
@@ -80,7 +80,7 @@ func (c *MQTTClient) subMultiple(filters map[string]QosType, callback mqtt.Messa
 	return nil
 }
 
-func (c *MQTTClient) SubscribeMultiple(topics map[string]QosType, callback mqtt.MessageHandler) error {
+func (c *MQTTClient) SubscribeMultiple(topics map[string]QosLevel, callback mqtt.MessageHandler) error {
 	c.mu.Lock()
 	keys, arr := ConvMapToOrderedArray(topics)
 	arrStr := JsonMarshal(arr)
@@ -94,12 +94,12 @@ func (c *MQTTClient) SubscribeMultiple(topics map[string]QosType, callback mqtt.
 type (
 	Consumer struct {
 		Topic    string
-		QosType  QosType
+		QosType  QosLevel
 		CallBack mqtt.MessageHandler
 	}
 
 	MultipleConsumer struct {
-		Topics   map[string]QosType
+		Topics   map[string]QosLevel
 		CallBack mqtt.MessageHandler
 	}
 )
@@ -110,6 +110,7 @@ func (c *MQTTClient) subConsumer(consumer *Consumer) {
 		if c.debug {
 			log.Printf("[Error] ** subConsumer ** topic [%v] error [%v]", consumer.Topic, err)
 		}
+		return
 	}
 	if c.debug {
 		log.Printf("[Info] ** subConsumer ** topic [%v] success", consumer.Topic)
@@ -133,6 +134,7 @@ func (c *MQTTClient) subMultipleConsumer(mConsumer *MultipleConsumer) {
 		if c.debug {
 			log.Printf("[Error] ** subMultipleConsumer ** topics [%v] error [%v]", mConsumer.Topics, err)
 		}
+		return
 	}
 	if c.debug {
 		log.Printf("[Info] ** subMultipleConsumer ** topics [%v] success", mConsumer.Topics)
@@ -149,7 +151,7 @@ func (c *MQTTClient) RegisterMultipleConsumers(mConsumers []*MultipleConsumer) {
 	}
 }
 
-func (c *MQTTClient) RegisterOnlyTopic(topic string, qos QosType) {
+func (c *MQTTClient) RegisterOnlyTopic(topic string, qos QosLevel) {
 	c.RegisterConsumer(&Consumer{
 		Topic:   topic,
 		QosType: qos,

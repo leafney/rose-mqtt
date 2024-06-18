@@ -60,7 +60,7 @@ func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
 			split := strings.Split(topic, "#")
 
 			if len(split) == 2 {
-				var qos QosType
+				var qos QosLevel
 				switch split[1] {
 				case "0":
 					qos = Qos0
@@ -79,6 +79,7 @@ func (c *MQTTClient) DefaultOnConnect(cli mqtt.Client) {
 
 				if err := c.sub(split[0], qos, cb); err != nil {
 					log.Printf("[Error] topic [%v] reconnect register error [%v]", split[0], err)
+					return
 				}
 				if c.debug {
 					log.Printf("[Info] topic [%v] reconnect register success", split[0])

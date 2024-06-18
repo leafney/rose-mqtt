@@ -45,14 +45,14 @@ func TestNewMClient(t *testing.T) {
 	//cs := []*Consumer{
 	//	{
 	//		Topic:   "yili/1",
-	//		QosType: Qos0,
+	//		QosLevel: Qos0,
 	//		CallBack: func(c mqtt.Client, msg mqtt.Message) {
 	//			t.Logf("topic [%v] msg [%v]", msg.Topic(), string(msg.Payload()))
 	//		},
 	//	},
 	//	{
 	//		Topic:   "yili/2",
-	//		QosType: Qos0,
+	//		QosLevel: Qos0,
 	//		CallBack: func(c mqtt.Client, msg mqtt.Message) {
 	//			t.Logf("topic [%v] msg [%v]", msg.Topic(), string(msg.Payload()))
 	//		},
@@ -124,7 +124,7 @@ func TestSecond(t *testing.T) {
 
 	// 接收，
 	c.RegisterMultipleConsumer(&MultipleConsumer{
-		Topics: map[string]QosType{
+		Topics: map[string]QosLevel{
 			"topic/hello3": Qos0,
 			"topic/hello4": Qos1,
 			"topic/hello5": Qos1,

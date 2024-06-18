@@ -22,11 +22,15 @@ type Config struct {
 	keepAlive     time.Duration // 保活时间
 	waitTimeout   time.Duration // 等待时间
 	reconnectType ReConnType    // 自动重连选项
-	// 自动重连配置
-
-	defaultHandler  mqtt.MessageHandler        // 发布消息回调
-	connHandler     mqtt.OnConnectHandler      // 连接回调
-	connLostHandler mqtt.ConnectionLostHandler // 连接意外中断回调
+	//willEnabled     bool          // 遗嘱消息
+	willTopic         string
+	willPayload       []byte
+	willQos           QosLevel
+	willPayloadIsByte bool
+	willRetained      bool
+	defaultHandler    mqtt.MessageHandler        // 发布消息回调
+	connHandler       mqtt.OnConnectHandler      // 连接回调
+	connLostHandler   mqtt.ConnectionLostHandler // 连接意外中断回调
 
 }
 
@@ -125,6 +129,29 @@ func (c *Config) SetReconnectType(t ReConnType) *Config {
 
 func (c *Config) SetTLSConfig() {
 
+}
+
+//func (c *Config) SetWillEnabled(enabled bool) *Config {
+//	c.willEnabled = enabled
+//	return c
+//}
+
+func (c *Config) SetWill(topic, payload string, qos QosLevel, retained bool) *Config {
+	c.willTopic = topic
+	c.willPayload = []byte(payload)
+	c.willPayloadIsByte = false
+	c.willQos = qos
+	c.willRetained = retained
+	return c
+}
+
+func (c *Config) SetWillByte(topic string, payload []byte, qos QosLevel, retained bool) *Config {
+	c.willTopic = topic
+	c.willPayload = payload
+	c.willPayloadIsByte = true
+	c.willQos = qos
+	c.willRetained = retained
+	return c
 }
 
 func (c *Config) SetDefaultPublishHandler(handler mqtt.MessageHandler) *Config {

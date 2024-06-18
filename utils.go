@@ -42,7 +42,7 @@ func AutoRetry(callback func() error, maxRetries int, interval time.Duration) (e
 	return
 }
 
-func SubCallbackKey(topic string, qos QosType) string {
+func SubCallbackKey(topic string, qos QosLevel) string {
 	return fmt.Sprintf("%s#%v", topic, qos)
 }
 
@@ -51,7 +51,7 @@ func IsStrEmpty(str string) bool {
 }
 
 // ConvMapToOrderedArray 将 map 转换为有序集合
-func ConvMapToOrderedArray(m map[string]QosType) ([]string, []TopicQosPair) {
+func ConvMapToOrderedArray(m map[string]QosLevel) ([]string, []TopicQosPair) {
 	keys := make([]string, 0)
 	for k := range m {
 		keys = append(keys, k)
@@ -72,8 +72,8 @@ func ConvMapToOrderedArray(m map[string]QosType) ([]string, []TopicQosPair) {
 }
 
 // ConvOrderedArrayToMap 将有序集合转换为 map
-func ConvOrderedArrayToMap(array []TopicQosPair) map[string]QosType {
-	m := make(map[string]QosType, len(array))
+func ConvOrderedArrayToMap(array []TopicQosPair) map[string]QosLevel {
+	m := make(map[string]QosLevel, len(array))
 
 	for _, kv := range array {
 		if IsStrEmpty(kv.Topic) {

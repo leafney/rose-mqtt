@@ -13,7 +13,7 @@ import (
 	"log"
 )
 
-func (c *MQTTClient) Publish(topic string, qos QosType, retained bool, payload interface{}) error {
+func (c *MQTTClient) Publish(topic string, qos QosLevel, retained bool, payload interface{}) error {
 	token := c.client.Publish(topic, byte(qos), retained, payload)
 
 	waitRes := false
